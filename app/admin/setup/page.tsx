@@ -23,96 +23,47 @@ export default function SetupPage() {
     setError("");
 
     try {
-      // Create products table
-      const { error: productsError } = await supabase.rpc(
-        "create_products_table",
-        {}
-      );
-
-      if (productsError) {
-        // If RPC doesn't exist, create tables manually
-        const { error: createProductsError } = await supabase.query(`
-          CREATE TABLE IF NOT EXISTS products (
-            id SERIAL PRIMARY KEY,
-            title TEXT NOT NULL,
-            description TEXT,
-            price NUMERIC NOT NULL,
-            original_price NUMERIC,
-            rating NUMERIC DEFAULT 4.0,
-            image_url TEXT,
-            category TEXT,
-            badge TEXT,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-
-        if (createProductsError) {
-          throw createProductsError;
-        }
-      }
-
-      // Create categories table
-      const { error: categoriesError } = await supabase.rpc(
-        "create_categories_table",
-        {}
-      );
-
-      if (categoriesError) {
-        // If RPC doesn't exist, create tables manually
-        const { error: createCategoriesError } = await supabase.query(`
-          CREATE TABLE IF NOT EXISTS categories (
-            id SERIAL PRIMARY KEY,
-            title TEXT NOT NULL,
-            slug TEXT NOT NULL UNIQUE,
-            image_url TEXT,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-
-        if (createCategoriesError) {
-          throw createCategoriesError;
-        }
-      }
-
-      // Insert sample data
+      // Insert sample data for categories
       const { error: insertError } = await supabase
         .from("categories")
         .insert([
           {
-            title: "Televisions",
+            name: "Televisions",
             slug: "televisions",
             image_url: "/placeholder.svg?height=200&width=200",
           },
           {
-            title: "Laptops",
+            name: "Laptops",
             slug: "laptops",
             image_url: "/placeholder.svg?height=200&width=200",
           },
           {
-            title: "Smartphones",
+            name: "Smartphones",
             slug: "smartphones",
             image_url: "/placeholder.svg?height=200&width=200",
           },
           {
-            title: "Refrigerators",
+            name: "Refrigerators",
             slug: "refrigerators",
             image_url: "/placeholder.svg?height=200&width=200",
           },
           {
-            title: "Washing Machines",
+            name: "Washing Machines",
             slug: "washing-machines",
             image_url: "/placeholder.svg?height=200&width=200",
           },
           {
-            title: "Air Conditioners",
+            name: "Air Conditioners",
             slug: "air-conditioners",
             image_url: "/placeholder.svg?height=200&width=200",
           },
         ])
         .select();
 
-      if (insertError) {
-        console.log("Categories may already exist, continuing...");
+      if (insertError && insertError.code !== '23505') { // Ignore unique constraint violations
+        console.log("Error inserting categories:", insertError);
+      } else {
+        console.log("Categories inserted or already exist");
       }
 
       // Insert sample products
@@ -158,18 +109,16 @@ export default function SetupPage() {
         ])
         .select();
 
-      if (insertProductsError) {
-        console.log("Products may already exist, continuing...");
+      if (insertProductsError && insertProductsError.code !== '23505') {
+        console.log("Error inserting products:", insertProductsError);
+      } else {
+        console.log("Products inserted or already exist");
       }
 
-      setMessage(
-        "Database setup completed successfully! You can now use the admin dashboard to manage products and categories."
-      );
+      setMessage("Database setup completed successfully! You can now use the admin dashboard to manage products and categories.");
     } catch (err) {
       console.error("Setup error:", err);
-      setError(
-        "An error occurred during setup. Please check the console for details."
-      );
+      setError("An error occurred during setup. Please check the console for details.");
     } finally {
       setLoading(false);
     }
@@ -181,8 +130,7 @@ export default function SetupPage() {
         <CardHeader>
           <CardTitle>Supabase Database Setup</CardTitle>
           <CardDescription>
-            This will create the necessary tables and sample data in your
-            Supabase database.
+            This will create sample data in your Supabase database.
           </CardDescription>
         </CardHeader>
         <CardContent>
